@@ -6,7 +6,7 @@ import argparse
 import numpy
 import cPickle as pkl
 
-from nmt import (build_sampler, gen_sample, load_params,
+from nmt_all_twogate import (build_sampler, gen_sample, load_params,
                  init_params, init_tparams)
 
 from multiprocessing import Process, Queue
@@ -29,11 +29,12 @@ def translate_model(queue, rqueue, pid, model, options, k, normalize):
     # word index
     f_init, f_next = build_sampler(tparams, options, trng, use_noise)
 
-    def _translate(seq):
+    def _translate(seq, topic):
         # sample given an input sequence and obtain scores
         sample, score = gen_sample(tparams, f_init, f_next,
                                    numpy.array(seq).reshape([len(seq), 1]),
-                                   options, trng=trng, k=k, maxlen=200,
+                                   topic,
+                                   options, trng=trng, k=k, maxlen=20,
                                    stochastic=False, argmax=False)
 
         # normalize scores according to sequence lengths
@@ -48,16 +49,16 @@ def translate_model(queue, rqueue, pid, model, options, k, normalize):
         if req is None:
             break
 
-        idx, x = req[0], req[1]
+        idx, x, kw = req[0], req[1], req[2]
         print pid, '-', idx
-        seq = _translate(x)
+        seq = _translate(x, kw)
 
         rqueue.put((idx, seq))
 
     return
 
 
-def main(model, dictionary, dictionary_target, source_file, saveto, k=5,
+def main(model, dictionary, dictionary_target, source_file, topic_file, saveto, k=5,
          normalize=False, n_process=5, chr_level=False):
 
     # load model model_options
@@ -104,17 +105,24 @@ def main(model, dictionary, dictionary_target, source_file, saveto, k=5,
             capsw.append(' '.join(ww))
         return capsw
 
-    def _send_jobs(fname):
-        with open(fname, 'r') as f:
-            for idx, line in enumerate(f):
+    def _send_jobs(q_file, kw_file):
+        with open(q_file, 'r') as f1, open(kw_file, "r") as f2:
+            for idx, (l1, l2) in enumerate(zip(f1, f2)):
                 if chr_level:
-                    words = list(line.decode('utf-8').strip())
+                    words = list(l1.decode('utf-8').strip())
+                    kws = list(l2.decode('utf-8').strip())
                 else:
-                    words = line.strip().split()
+                    words = l1.strip().split()
+                    kws = l2.strip().split()
                 x = map(lambda w: word_dict[w] if w in word_dict else 1, words)
                 x = map(lambda ii: ii if ii < options['n_words_src'] else 1, x)
                 x += [0]
-                queue.put((idx, x))
+                
+                kw = map(lambda w: word_dict[w] if w in word_dict else 1, kws)
+                kw = map(lambda ii: ii if ii < options['n_words_src'] else 1, kw)
+                # padding
+                kw = [kw[0]] * (len(x) - 1) + [0]
+                queue.put((idx, x, kw))
         return idx+1
 
     def _finish_processes():
@@ -131,7 +139,7 @@ def main(model, dictionary, dictionary_target, source_file, saveto, k=5,
         return trans
 
     print 'Translating ', source_file, '...'
-    n_samples = _send_jobs(source_file)
+    n_samples = _send_jobs(source_file, topic_file)
     trans = _seqs2words(_retrieve_jobs(n_samples))
     _finish_processes()
     with open(saveto, 'w') as f:
@@ -149,10 +157,11 @@ if __name__ == "__main__":
     parser.add_argument('dictionary', type=str)
     parser.add_argument('dictionary_target', type=str)
     parser.add_argument('source', type=str)
+    parser.add_argument('topic', type=str)
     parser.add_argument('saveto', type=str)
 
     args = parser.parse_args()
 
-    main(args.model, args.dictionary, args.dictionary_target, args.source,
+    main(args.model, args.dictionary, args.dictionary_target, args.source, args.topic,
          args.saveto, k=args.k, normalize=args.n, n_process=args.p,
          chr_level=args.c)

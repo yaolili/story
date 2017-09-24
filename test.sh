@@ -7,13 +7,13 @@
 
 export THEANO_FLAGS=device=cpu,floatX=float32
 
-cd $PBS_O_WORKDIR
-python ./translate.py -n -p 8 \
-	$HOME/models/model_session2.npz  \
-	$HOME/data/europarl-v7.fr-en.en.tok.pkl \
-	$HOME/data/europarl-v7.fr-en.fr.tok.pkl \
-	$HOME/data/newstest2011.en.tok \
-	./newstest2011.trans.fr.tok
+python translate.py -n -p 20 \
+	../model/vanilla/twogate/model_twogate.npz  \
+	../data/rocstory.vanilla.train.pkl \
+	../data/rocstory.vanilla.train.pkl \
+	../data/vanilla.dev.query \
+    ../data/vanilla.dev.topic \
+	./vanilla.12000.tok
 
 
 
