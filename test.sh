@@ -7,13 +7,13 @@
 
 export THEANO_FLAGS=device=cpu,floatX=float32
 
-python translate.py -n -p 20 \
+python translate.py -n -p 2 \
 	../model/vanilla/twogate/model_twogate.npz  \
 	../data/rocstory.vanilla.train.pkl \
 	../data/rocstory.vanilla.train.pkl \
-	../data/vanilla.dev.query \
+	../data/yao.dev.query \
     ../data/vanilla.dev.topic \
-	./vanilla.12000.tok
+	./yao.tok
 
 
 
