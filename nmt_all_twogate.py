@@ -350,6 +350,7 @@ def param_init_gru_cond(options, params, prefix='gru_cond',
     if dim_nonlin is None:
         dim_nonlin = dim
 
+    #STANDARD GRU params
     W = numpy.concatenate([norm_weight(nin, dim),
                            norm_weight(nin, dim)], axis=1)
     params[_p(prefix, 'W')] = W
@@ -399,7 +400,7 @@ def param_init_gru_cond(options, params, prefix='gru_cond',
     params[_p(prefix, 'c_tt')] = c_att
     
     ####################################
-    # add topic GRU gate
+    #CUE WORD GRU params
     Wt = numpy.concatenate([norm_weight(nin, dim),
                             norm_weight(nin, dim)], axis=1)
     params[_p(prefix, 'Wt')] = Wt
@@ -449,7 +450,7 @@ def param_init_gru_cond(options, params, prefix='gru_cond',
     params[_p(prefix, 'ct_tt')] = c_att
 
     
-    # add fusion matrix
+    #FUSION UNIT
     W1 = ortho_weight(dim_nonlin)
     params[_p(prefix, 'W1')] = W1
     W2 = ortho_weight(dim_nonlin)
@@ -512,7 +513,6 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
         tparams[_p(prefix, 'b')]
 
     #############
-    # topic gate
     z_ = tensor.dot(z, tparams[_p(prefix, 'Wt')]) + \
         tparams[_p(prefix, 'bt')]
     zx = tensor.dot(z, tparams[_p(prefix, 'Wtx')]) + \
@@ -520,6 +520,20 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
     #############
 
 
+    """
+    input sequence 
+        [m_: mask; x_: state_below_; xx: state_belowx; z_: zx]
+    output sequence 
+        [h_: last hidden state; ctx_: last attention context; alpha_: last attention weight]
+    non sentences 
+        [cc_: encoder context;
+        pctx_: encoder context with affine transformation for STANDARD GRU;
+        pctxz_: encoder context with affine transformation for CUE WORD GRU;]
+    shared variables
+        [From "U" to "bx_nl", they are applied in STANDARD GRU;
+        From "Ut" to "btx_nl", they are applied in CUE WORD GRU; 
+        W1 - W3, FUSION UNIT]
+    """
     def _step_slice(m_, x_, xx_, z_, zx, h_, ctx_, alpha_, pctx_, cc_, pctxz_,
                     U, Wc, W_comb_att, U_att, c_tt, Ux, Wcx,
                     U_nl, Ux_nl, b_nl, bx_nl,
@@ -528,7 +542,7 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
                     W1, W2, W3):
                     
         ##############################
-        # topic GRU
+        #CUE WORD GRU
         preact1 = tensor.dot(h_, Ut)
         preact1 += z_
         preact1 = tensor.nnet.sigmoid(preact1)
@@ -574,7 +588,7 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
         h2 = m_[:, None] * h2 + (1. - m_)[:, None] * h1
         htw = h2
         ####################################################
-
+        #STANDARD GRU
         preact1 = tensor.dot(h_, U)
         preact1 += x_
         preact1 = tensor.nnet.sigmoid(preact1)
@@ -584,8 +598,6 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
 
         preactx1 = tensor.dot(h_, Ux)
         preactx1 *= r1
-        # debug
-        # preactx1 = theano.printing.Print('*************after * r1')(preactx1)
         preactx1 += xx_
 
         h1 = tensor.tanh(preactx1)
@@ -622,14 +634,15 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
         hyt = h2
         
         ###################################
-        # fusion
+        #FUSION UNIT
         htw = tensor.tanh(tensor.dot(htw, W1))
         hyt = tensor.tanh(tensor.dot(hyt, W2))
         r = tensor.nnet.sigmoid(tensor.dot(concatenate([hyt, htw], axis=1), W3))
         h = r * htw + (1. - r) * hyt
+        h = m_[:, None] * h + (1. - m_)[:, None] * h
         ###################################
         
-        return h, ctx_, alpha.T  # pstate_, preact, preactx, r, u
+        return h, ctx_, alpha.T  
 
     seqs = [mask, state_below_, state_belowx, z_, zx]
     _step = _step_slice
@@ -786,6 +799,9 @@ def build_model(tparams, options):
     # topic embedding 
     topic = tparams['Wemb_dec'][z.flatten()]
     topic = topic.reshape([n_timesteps_trg, n_samples, options['dim_word']])
+    topic_shifted = tensor.zeros_like(topic)
+    topic_shifted = tensor.set_subtensor(topic_shifted[1:], emb[:-1])
+    topic = topic_shifted
 
     # decoder - pass through the decoder conditional gru with attention
     proj = get_layer(options['decoder'])[1](tparams, emb, topic, options,
@@ -870,10 +886,10 @@ def build_sampler(tparams, options, trng, use_noise):
     # if it's the first word, emb should be all zero
     emb = tensor.switch(y[:, None] < 0, tensor.alloc(0., 1, tparams['Wemb_dec'].shape[1]), tparams['Wemb_dec'][y])
     
-    # add one
-    # topic = tensor.switch(y[:, None] < 0, tparams['Wemb_dec'][z], tensor.alloc(0., 1, tparams['Wemb_dec'].shape[1]))
-    # add all / gate
-    topic = tparams['Wemb_dec'][z]
+    # add topic word
+    topic = tensor.switch(y[:, None] < 0, tensor.alloc(0., 1, tparams['Wemb_dec'].shape[1]), tparams['Wemb_dec'][z])
+    #FIXME
+    # topic = tparams['Wemb_dec'][z]
 
     # apply one step of conditional gru with attention
     proj = get_layer(options['decoder'])[1](tparams, emb, topic, options,
@@ -910,7 +926,7 @@ def build_sampler(tparams, options, trng, use_noise):
     print('Building f_next..')
     inps = [y, z, ctx, init_state]
     outs = [next_probs, next_sample, next_state]
-    f_next = theano.function(inps, outs, name='f_next', profile=profile)
+    f_next = theano.function(inps, outs, name='f_next', profile=profile, on_unused_input='ignore')
     print('Done')
 
     return f_init, f_next
@@ -1212,8 +1228,6 @@ def train(dim_word=100,  # word vector dimensionality
     model_options = locals().copy()
     
     # load dictionaries and invert them
-    # notice, only worddicts_r[0] is index : word
-    # worddicts[1] is seq_index : index
     worddicts = [None] * len(dictionaries)
     worddicts_r = [None] * len(dictionaries)
     for ii, dd in enumerate(dictionaries):
@@ -1340,7 +1354,7 @@ def train(dim_word=100,  # word vector dimensionality
             n_samples += len(x)
             uidx += 1
             use_noise.set_value(1.)
-            # TO DO, prepare z
+            # prepare z
             z = prepare_z(y, z)
             x, x_mask, y, y_mask, z = prepare_data(x, y, z, maxlen=maxlen,
                                                 n_words_src=n_words_src,
