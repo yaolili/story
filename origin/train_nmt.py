@@ -18,7 +18,7 @@ def main(job_id, params):
                      clip_c=params['clip-c'][0],
                      lrate=params['learning-rate'][0],
                      optimizer=params['optimizer'][0],
-                     patience=20,
+                     patience=5,
                      maxlen=70,
                      batch_size=50,
                      valid_batch_size=50,
@@ -26,12 +26,12 @@ def main(job_id, params):
                      dispFreq=50,
                      saveFreq=500,
                      sampleFreq=500,
-                     datasets=['../../data/allpair.train.query',
-                               '../../data/allpair.train.reply',
-                               '../../data/allpair.train.topic'],
-                     valid_datasets=['../../data/allpair.dev.query',
-                                     '../../data/allpair.dev.reply',
-                                     '../../data/allpair.dev.topic'],
+                     datasets=['../../data/lookback2.train.query',
+                               '../../data/lookback2.train.reply',
+                               '../../data/lookback2.train.topic'],
+                     valid_datasets=['../../data/lookback2.dev.query',
+                                     '../../data/lookback2.dev.reply',
+                                     '../../data/lookback2.dev.topic'],
                      dictionaries=['../../data/rocstory.vanilla.train.pkl',
                                    '../../data/rocstory.vanilla.train.pkl'],
                      use_dropout=params['use-dropout'][0],
@@ -40,7 +40,7 @@ def main(job_id, params):
 
 if __name__ == '__main__':
     main(0, {
-        'model': ['../../model/allpair/origin/model_origin.npz'],
+        'model': ['../../model/lookback2/origin/model_origin.npz'],
         'dim_word': [620],
         'dim': [1024],
         'n-words': [80600],  # 80526
@@ -49,4 +49,4 @@ if __name__ == '__main__':
         'clip-c': [1.],
         'use-dropout': [False],
         'learning-rate': [0.0001],
-        'reload': [True]})
+        'reload': [False]})

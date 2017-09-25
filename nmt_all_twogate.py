@@ -639,7 +639,7 @@ def gru_cond_layer(tparams, state_below, z, options, prefix='gru',
         hyt = tensor.tanh(tensor.dot(hyt, W2))
         r = tensor.nnet.sigmoid(tensor.dot(concatenate([hyt, htw], axis=1), W3))
         h = r * htw + (1. - r) * hyt
-        h = m_[:, None] * h + (1. - m_)[:, None] * h
+        h = m_[:, None] * h + (1. - m_)[:, None] * h_
         ###################################
         
         return h, ctx_, alpha.T  
@@ -800,7 +800,7 @@ def build_model(tparams, options):
     topic = tparams['Wemb_dec'][z.flatten()]
     topic = topic.reshape([n_timesteps_trg, n_samples, options['dim_word']])
     topic_shifted = tensor.zeros_like(topic)
-    topic_shifted = tensor.set_subtensor(topic_shifted[1:], emb[:-1])
+    topic_shifted = tensor.set_subtensor(topic_shifted[1:], topic[:-1])
     topic = topic_shifted
 
     # decoder - pass through the decoder conditional gru with attention

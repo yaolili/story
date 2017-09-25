@@ -12,7 +12,7 @@ python translate.py -n -p 20 \
 	../../data/rocstory.vanilla.train.pkl \
 	../../data/rocstory.vanilla.train.pkl \
 	../../data/vanilla.dev.query \
-	./vanilla.origin.12000.tok
+	./allpair.origin.tok
 
 
 
