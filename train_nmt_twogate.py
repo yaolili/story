@@ -15,7 +15,7 @@ def main(job_id, params):
                      clip_c=params['clip-c'][0],
                      lrate=params['learning-rate'][0],
                      optimizer=params['optimizer'][0],
-                     patience=20,
+                     patience=5,
                      maxlen=70,
                      batch_size=50,
                      valid_batch_size=50,
