@@ -1,6 +1,8 @@
 '''
 Build a neural machine translation model with soft attention
 '''
+# -*- coding: UTF-8 -*-
+
 import theano
 import theano.tensor as tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
