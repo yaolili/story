@@ -10,14 +10,20 @@ import nltk
 from nltk.tokenize import RegexpTokenizer
 import random
     
-
-def get_noun(sentence):
+def tokenize(sentence):
     if not sentence:
-        raise ValueError, "Empty sentence for get_noun()"
-    is_noun = lambda pos: pos[:2] == 'NN'
+        raise ValueError, "Empty sentence for tokenize()"
     # delete punctuation
-    tokenizer = RegexpTokenizer(r'\w+')
-    tokenized =  tokenizer.tokenize(sentence)
+    # tokenizer = RegexpTokenizer(r'\w+')
+    # tokenized =  tokenizer.tokenize(sentence)
+    return nltk.word_tokenize(sentence)
+    
+def get_noun(tokenized):
+    if len(tokenized) == 0:
+        raise ValueError, "Empty tokenized words for get_noun()"
+    if not isinstance(tokenized, list):
+        raise TypeError, "List params for get_noun()"
+    is_noun = lambda pos: pos[:2] == 'NN'
     nouns = [word for (word, pos) in nltk.pos_tag(tokenized) if is_noun(pos)] 
     if len(nouns) > 0:
         return random.choice(nouns)

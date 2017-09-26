@@ -8,12 +8,12 @@
 export THEANO_FLAGS=device=cpu,floatX=float32
 
 python translate.py -n -p 2 \
-	../model/vanilla/twogate/model_twogate.npz  \
+	../model/allpair/twogate/model_twogate.npz  \
 	../data/rocstory.vanilla.train.pkl \
 	../data/rocstory.vanilla.train.pkl \
-	../data/yao.dev.query \
+	../data/vanilla.dev.query \
     ../data/vanilla.dev.topic \
-	./yao.tok
+	./allpair.twogate.tok
 
 
 
