@@ -7,7 +7,7 @@
 
 export THEANO_FLAGS=device=cpu,floatX=float32
 
-python translate.py -n -p 2 \
+python translate.py -n -p 12 \
 	../model/allpair/twogate/model_twogate.npz  \
 	../data/rocstory.vanilla.train.pkl \
 	../data/rocstory.vanilla.train.pkl \

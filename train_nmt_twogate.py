@@ -40,7 +40,7 @@ if __name__ == '__main__':
         'model': ['../model/allpair/twogate/model_twogate.npz'],
         'dim_word': [620],
         'dim': [1024],
-        'n-words': [80600],  # 80526
+        'n-words': [28000],  # 27644
         'optimizer': ['adadelta'],
         'decay-c': [0.],
         'clip-c': [1.],

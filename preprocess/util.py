@@ -30,4 +30,6 @@ def get_noun(tokenized):
     return random.choice(tokenized)
     
 if __name__ == "__main__":
-    print(get_noun("I am a Chinses!"))
+    str = "I am a Chinses!"
+    tokenized = tokenize(str)
+    print(get_noun(tokenized))
