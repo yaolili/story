@@ -5,11 +5,12 @@
 # CREATED:  2017-09-23 16:50:16
 # MODIFIED: 2017-09-23 16:50:22
 
+## Usage: python read_dir write_dir filename
+
 from util import get_noun
 from nltk.tokenize import sent_tokenize
+import sys, os
 
-read_path = "../../Processed/"
-write_path = "../../data/"
 
 # invalid for vanilla, all_invalid for allpair, lookback2_invalid for lookback2
 invalid = [8820, 19084, 44800]
@@ -41,20 +42,17 @@ def main(source_file, q_file, r_file, kw_file):
     kw_file.close()
     
 if __name__ == "__main__":
-    train_file = read_path + "rocstory.pad-lookback-2.train"
-    valid_file = read_path + "rocstory.pad-lookback-2.val"
+    read_path = sys.argv[1] #"../../Processed/"
+    write_path = sys.argv[2] #"../../data/"
+    file_name = sys.argv[3]
+    train_file = os.path.join(read_path, file_name)
     
-    train_q_file = open(write_path + "lookback2.train.query", "w")
-    train_r_file = open(write_path + "lookback2.train.reply", "w")
-    train_kw_file = open(write_path + "lookback2.train.topic", "w")
-    dev_q_file = open(write_path + "lookback2.dev.query", "w")
+    train_q_file = open(os.path.join(write_path, file_name + ".query"), "w")
+    train_r_file = open(os.path.join(write_path, file_name + ".reply"), "w")
+    train_kw_file = open(os.path.join(write_path, file_name + ".topic"), "w")
+    '''dev_q_file = open(write_path + "lookback2.dev.query", "w")
     dev_r_file = open(write_path + "lookback2.dev.reply", "w")
     dev_kw_file = open(write_path + "lookback2.dev.topic", "w")
-    
+    '''
     main(train_file, train_q_file, train_r_file, train_kw_file)
-    main(valid_file, dev_q_file, dev_r_file, dev_kw_file)
-        
-
-   
-            
-        
+    #main(valid_file, dev_q_file, dev_r_file, dev_kw_file)
