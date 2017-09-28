@@ -34,15 +34,19 @@ def translate_model(queue, rqueue, pid, model, options, k, normalize):
         sample, score = gen_sample(tparams, f_init, f_next,
                                    numpy.array(seq).reshape([len(seq), 1]),
                                    topic,
-                                   options, trng=trng, k=k, maxlen=20,
-                                   stochastic=False, argmax=False)
+                                   options, trng=trng, k=1, maxlen=20,
+                                   stochastic=True, argmax=False)
 
+        # Stochastic sample
+        return sample
+        
+        # Beam search
         # normalize scores according to sequence lengths
-        if normalize:
-            lengths = numpy.array([len(s) for s in sample])
-            score = score / lengths
-        sidx = numpy.argmin(score)
-        return sample[sidx]
+        # if normalize:
+            # lengths = numpy.array([len(s) for s in sample])
+            # score = score / lengths
+        # sidx = numpy.argmin(score)
+        # return sample[sidx]
 
     while True:
         req = queue.get()
@@ -101,7 +105,8 @@ def main(model, dictionary, dictionary_target, source_file, topic_file, saveto, 
             for w in cc:
                 if w == 0:
                     break
-                ww.append(word_idict_trg[w])
+                if w not in word_idict_trg: ww.append('UNK')
+                else: ww.append(word_idict_trg[w])
             capsw.append(' '.join(ww))
         return capsw
 
