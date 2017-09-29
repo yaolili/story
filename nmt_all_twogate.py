@@ -1,13 +1,11 @@
 '''
 Build a neural machine translation model with soft attention
 '''
-# -*- coding: UTF-8 -*-
-
 import theano
 import theano.tensor as tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
-import pickle as pkl
+import cPickle as pkl
 import ipdb
 import numpy
 import copy
@@ -29,21 +27,21 @@ theano.config.exception_verbosity='high'
 
 # push parameters to Theano shared variables
 def zipp(params, tparams):
-    for kk, vv in params.items():
+    for kk, vv in params.iteritems():
         tparams[kk].set_value(vv)
 
 
 # pull parameters from Theano shared variables
 def unzip(zipped):
     new_params = OrderedDict()
-    for kk, vv in zipped.items():
+    for kk, vv in zipped.iteritems():
         new_params[kk] = vv.get_value()
     return new_params
 
 
 # get the list of parameters: Note that tparams must be OrderedDict
 def itemlist(tparams):
-    return [vv for kk, vv in tparams.items()]
+    return [vv for kk, vv in tparams.iteritems()]
 
 
 # dropout
@@ -64,7 +62,7 @@ def _p(pp, name):
 # initialize Theano shared variables according to the initial parameters
 def init_tparams(params):
     tparams = OrderedDict()
-    for kk, pp in params.items():
+    for kk, pp in params.iteritems():
         tparams[kk] = theano.shared(params[kk], name=kk)
     return tparams
 
@@ -72,7 +70,7 @@ def init_tparams(params):
 # load parameters
 def load_params(path, params):
     pp = numpy.load(path)
-    for kk, vv in params.items():
+    for kk, vv in params.iteritems():
         if kk not in pp:
             warnings.warn('%s is not in the archive' % kk)
             continue
@@ -804,6 +802,7 @@ def build_model(tparams, options):
     topic_shifted = tensor.zeros_like(topic)
     topic_shifted = tensor.set_subtensor(topic_shifted[1:], topic[:-1])
     topic = topic_shifted
+    
 
     # decoder - pass through the decoder conditional gru with attention
     proj = get_layer(options['decoder'])[1](tparams, emb, topic, options,
@@ -836,7 +835,6 @@ def build_model(tparams, options):
     logit_shp = logit.shape
     probs = tensor.nnet.softmax(logit.reshape([logit_shp[0]*logit_shp[1],
                                                logit_shp[2]]))
-
     # cost
     y_flat = y.flatten()
     y_flat_idx = tensor.arange(y_flat.shape[0]) * options['n_words'] + y_flat
@@ -891,7 +889,7 @@ def build_sampler(tparams, options, trng, use_noise):
     # add topic word
     topic = tensor.switch(y[:, None] < 0, tensor.alloc(0., 1, tparams['Wemb_dec'].shape[1]), tparams['Wemb_dec'][z])
     #FIXME
-    # topic = tparams['Wemb_dec'][z]
+    #topic = tensor.alloc(0., 1, tparams['Wemb_dec'].shape[1])
 
     # apply one step of conditional gru with attention
     proj = get_layer(options['decoder'])[1](tparams, emb, topic, options,
@@ -1042,8 +1040,6 @@ def pred_probs(f_log_probs, prepare_data, options, iterator, worddicts, verbose=
 
     for x, y, z in iterator:
         n_done += len(x)
-        # TO DO, prepare for z
-        z = prepare_z(y, z)
         x, x_mask, y, y_mask, z = prepare_data(x, y, z,
                                             n_words_src=options['n_words_src'],
                                             n_words=options['n_words'])
@@ -1066,7 +1062,7 @@ def pred_probs(f_log_probs, prepare_data, options, iterator, worddicts, verbose=
 def adam(lr, tparams, grads, inp, cost, beta1=0.9, beta2=0.999, e=1e-8):
 
     gshared = [theano.shared(p.get_value() * 0., name='%s_grad' % k)
-               for k, p in tparams.items()]
+               for k, p in tparams.iteritems()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
     f_grad_shared = theano.function(inp, cost, updates=gsup, profile=profile)
@@ -1077,7 +1073,7 @@ def adam(lr, tparams, grads, inp, cost, beta1=0.9, beta2=0.999, e=1e-8):
     t = t_prev + 1.
     lr_t = lr * tensor.sqrt(1. - beta2**t) / (1. - beta1**t)
 
-    for p, g in zip(list(tparams.values()), gshared):
+    for p, g in zip(tparams.values(), gshared):
         m = theano.shared(p.get_value() * 0., p.name + '_mean')
         v = theano.shared(p.get_value() * 0., p.name + '_variance')
         m_t = beta1 * m + (1. - beta1) * g
@@ -1098,13 +1094,13 @@ def adam(lr, tparams, grads, inp, cost, beta1=0.9, beta2=0.999, e=1e-8):
 def adadelta(lr, tparams, grads, inp, cost):
     zipped_grads = [theano.shared(p.get_value() * numpy.float32(0.),
                                   name='%s_grad' % k)
-                    for k, p in tparams.items()]
+                    for k, p in tparams.iteritems()]
     running_up2 = [theano.shared(p.get_value() * numpy.float32(0.),
                                  name='%s_rup2' % k)
-                   for k, p in tparams.items()]
+                   for k, p in tparams.iteritems()]
     running_grads2 = [theano.shared(p.get_value() * numpy.float32(0.),
                                     name='%s_rgrad2' % k)
-                      for k, p in tparams.items()]
+                      for k, p in tparams.iteritems()]
 
     zgup = [(zg, g) for zg, g in zip(zipped_grads, grads)]
     rg2up = [(rg2, 0.95 * rg2 + 0.05 * (g ** 2))
@@ -1129,13 +1125,13 @@ def adadelta(lr, tparams, grads, inp, cost):
 def rmsprop(lr, tparams, grads, inp, cost):
     zipped_grads = [theano.shared(p.get_value() * numpy.float32(0.),
                                   name='%s_grad' % k)
-                    for k, p in tparams.items()]
+                    for k, p in tparams.iteritems()]
     running_grads = [theano.shared(p.get_value() * numpy.float32(0.),
                                    name='%s_rgrad' % k)
-                     for k, p in tparams.items()]
+                     for k, p in tparams.iteritems()]
     running_grads2 = [theano.shared(p.get_value() * numpy.float32(0.),
                                     name='%s_rgrad2' % k)
-                      for k, p in tparams.items()]
+                      for k, p in tparams.iteritems()]
 
     zgup = [(zg, g) for zg, g in zip(zipped_grads, grads)]
     rgup = [(rg, 0.95 * rg + 0.05 * g) for rg, g in zip(running_grads, grads)]
@@ -1147,7 +1143,7 @@ def rmsprop(lr, tparams, grads, inp, cost):
 
     updir = [theano.shared(p.get_value() * numpy.float32(0.),
                            name='%s_updir' % k)
-             for k, p in tparams.items()]
+             for k, p in tparams.iteritems()]
     updir_new = [(ud, 0.9 * ud - 1e-4 * zg / tensor.sqrt(rg2 - rg ** 2 + 1e-4))
                  for ud, zg, rg, rg2 in zip(updir, zipped_grads, running_grads,
                                             running_grads2)]
@@ -1162,7 +1158,7 @@ def rmsprop(lr, tparams, grads, inp, cost):
 def sgd(lr, tparams, grads, x, mask, y, cost):
     gshared = [theano.shared(p.get_value() * 0.,
                              name='%s_grad' % k)
-               for k, p in tparams.items()]
+               for k, p in tparams.iteritems()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
     f_grad_shared = theano.function([x, mask, y], cost, updates=gsup,
@@ -1173,6 +1169,7 @@ def sgd(lr, tparams, grads, x, mask, y, cost):
 
     return f_grad_shared, f_update
 
+# notice: useless!
 def prepare_z(y, z):
     assert len(y) == len(z), "Len(y) mismatch Len(z)!"
     new_z = []
@@ -1236,7 +1233,7 @@ def train(dim_word=100,  # word vector dimensionality
         with open(dd, 'rb') as f:
             worddicts[ii] = pkl.load(f)
         worddicts_r[ii] = dict()
-        for kk, vv in worddicts[ii].items():
+        for kk, vv in worddicts[ii].iteritems():
             worddicts_r[ii][vv] = kk
 
     # reload options
@@ -1288,7 +1285,7 @@ def train(dim_word=100,  # word vector dimensionality
     if decay_c > 0.:
         decay_c = theano.shared(numpy.float32(decay_c), name='decay_c')
         weight_decay = 0.
-        for kk, vv in tparams.items():
+        for kk, vv in tparams.iteritems():
             weight_decay += (vv ** 2).sum()
         weight_decay *= decay_c
         cost += weight_decay
@@ -1356,8 +1353,6 @@ def train(dim_word=100,  # word vector dimensionality
             n_samples += len(x)
             uidx += 1
             use_noise.set_value(1.)
-            # prepare z
-            z = prepare_z(y, z)
             x, x_mask, y, y_mask, z = prepare_data(x, y, z, maxlen=maxlen,
                                                 n_words_src=n_words_src,
                                                 n_words=n_words)
@@ -1385,28 +1380,28 @@ def train(dim_word=100,  # word vector dimensionality
 
             # verbose
             if numpy.mod(uidx, dispFreq) == 0:
-                print('Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'UD ', ud)
+                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'UD ', ud
 
             # save the best model so far, in addition, save the latest model
             # into a separate file with the iteration number for external eval
             if numpy.mod(uidx, saveFreq) == 0:
-                print('Saving the best model...',)
+                print 'Saving the best model...',
                 if best_p is not None:
                     params = best_p
                 else:
                     params = unzip(tparams)
                 numpy.savez(saveto, history_errs=history_errs, uidx=uidx, **params)
                 pkl.dump(model_options, open('%s.pkl' % saveto, 'wb'))
-                print( 'Done')
+                print 'Done'
 
                 # save with uidx
                 if not overwrite:
-                    print( 'Saving the model at iteration {}...'.format(uidx),)
+                    print 'Saving the model at iteration {}...'.format(uidx),
                     saveto_uidx = '{}.iter{}.npz'.format(
                         os.path.splitext(saveto)[0], uidx)
                     numpy.savez(saveto_uidx, history_errs=history_errs,
                                 uidx=uidx, **unzip(tparams))
-                    print( 'Done')
+                    print 'Done'
 
 
             # generate some samples with the model and display them
@@ -1420,25 +1415,25 @@ def train(dim_word=100,  # word vector dimensionality
                                                maxlen=30,
                                                stochastic=stochastic,
                                                argmax=False)
-                    print( 'Source ', jj, ': ',)
+                    print 'Source ', jj, ': ',
                     for vv in x[:, jj]:
                         if vv == 0:
                             break
                         if vv in worddicts_r[0]:
-                            print( worddicts_r[0][vv],)
+                            print worddicts_r[0][vv],
                         else:
-                            print( 'UNK',)
-                    print()
-                    print( 'Truth ', jj, ' : ',)
+                            print 'UNK',
+                    print
+                    print 'Truth ', jj, ' : ',
                     for vv in y[:, jj]:
                         if vv == 0:
                             break
                         if vv in worddicts_r[1]:
-                            print( worddicts_r[1][vv],)
+                            print worddicts_r[1][vv],
                         else:
-                            print( 'UNK',)
-                    print()
-                    print( 'Sample ', jj, ': ',)
+                            print 'UNK',
+                    print
+                    print 'Sample ', jj, ': ',
                     if stochastic:
                         ss = sample
                     else:
@@ -1448,10 +1443,10 @@ def train(dim_word=100,  # word vector dimensionality
                         if vv == 0:
                             break
                         if vv in worddicts_r[1]:
-                            print( worddicts_r[1][vv],)
+                            print worddicts_r[1][vv],
                         else:
-                            print( 'UNK',)
-                    print()
+                            print 'UNK',
+                    print
 
             # validate model on validation set and early stop if necessary
             if numpy.mod(uidx, validFreq) == 0:
@@ -1468,22 +1463,22 @@ def train(dim_word=100,  # word vector dimensionality
                         numpy.array(history_errs)[:-patience].min():
                     bad_counter += 1
                     if bad_counter > patience:
-                        print( 'Early Stop!')
+                        print 'Early Stop!'
                         estop = True
                         break
 
                 if numpy.isnan(valid_err):
                     ipdb.set_trace()
 
-                print( 'Valid ', valid_err)
+                print 'Valid ', valid_err
 
             # finish after this many updates
             if uidx >= finish_after:
-                print( 'Finishing after %d iterations!' % uidx)
+                print 'Finishing after %d iterations!' % uidx
                 estop = True
                 break
 
-        print( 'Seen %d samples' % n_samples)
+        print 'Seen %d samples' % n_samples
 
         if estop:
             break
@@ -1495,7 +1490,7 @@ def train(dim_word=100,  # word vector dimensionality
     valid_err = pred_probs(f_log_probs, prepare_data,
                            model_options, valid, worddicts).mean()
 
-    print( 'Valid ', valid_err)
+    print 'Valid ', valid_err
 
     params = copy.copy(best_p)
     numpy.savez(saveto, zipped_params=best_p,
