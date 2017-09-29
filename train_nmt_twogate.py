@@ -26,7 +26,7 @@ def main(job_id, params):
                      #datasets=['../data/allpair.train.query',
                      #          '../data/allpair.train.reply',
                      #          '../data/allpair.train.topic'],
-                     datasets=['../data/rocstory.vanilla.train.small.query',
+                     datasets=['../data/rocstory.pad-lookback-1.train.small.query',
                                '../data/rocstory.vanilla.train.small.reply',
                                '../data/rocstory.vanilla.train.small.topic'],
                      valid_datasets=['../data/allpair.dev.query',
