@@ -34,20 +34,21 @@ def translate_model(queue, rqueue, pid, model, options, k, normalize):
         sample, score = gen_sample(tparams, f_init, f_next,
                                    numpy.array(seq).reshape([len(seq), 1]),
                                    topic,
-                                   options, trng=trng, k=1, maxlen=20,
-                                   stochastic=True, argmax=False)
+                                   options, trng=trng, k=k, maxlen=20,
+                                   stochastic=False, argmax=False)
 
         # Stochastic sample
-        return sample
+        # return sample
         
         # Beam search
         # normalize scores according to sequence lengths
-        # if normalize:
-            # lengths = numpy.array([len(s) for s in sample])
-            # score = score / lengths
-        # sidx = numpy.argmin(score)
-        # return sample[sidx]
+        if normalize:
+            lengths = numpy.array([len(s) for s in sample])
+            score = score / lengths
+        sidx = numpy.argmin(score)
+        return sample[sidx]
 
+    dict = {} # key: idx; value: [[s1], [s2]...]
     while True:
         req = queue.get()
         if req is None:
@@ -56,9 +57,25 @@ def translate_model(queue, rqueue, pid, model, options, k, normalize):
         idx, x, kw = req[0], req[1], req[2]
         print pid, '-', idx
         seq = _translate(x, kw)
-
+        # generate one sentence
         rqueue.put((idx, seq))
-
+        
+        """
+        # generate four sentences
+        if idx not in dict:
+            dict[idx] = []
+        dict[idx].append(seq)
+        if len(dict[idx]) < 4: 
+            queue.put((idx, seq, kw))
+        else: 
+            cur = []
+            for sentence in dict[idx]:
+                for index in sentence:
+                    if index != 0:
+                        cur.append(index)
+            cur.append(0)
+            rqueue.put((idx, cur))
+        """
     return
 
 
