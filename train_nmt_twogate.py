@@ -23,21 +23,24 @@ def main(job_id, params):
                      dispFreq=50,
                      saveFreq=500,
                      sampleFreq=500,
-                     datasets=['../data/allpair.train.query',
-                               '../data/allpair.train.reply',
-                               '../data/allpair.train.topic'],
+                     #datasets=['../data/allpair.train.query',
+                     #          '../data/allpair.train.reply',
+                     #          '../data/allpair.train.topic'],
+                     datasets=['../data/rocstory.pad-lookback-1.train.query',
+                               '../data/rocstory.pad-lookback-1.train.reply',
+                               '../data/rocstory.pad-lookback-1.train.topic'],
                      valid_datasets=['../data/allpair.dev.query',
                                      '../data/allpair.dev.reply',
                                      '../data/allpair.dev.topic'],
-                     dictionaries=['../data/rocstory.vanilla.train.pkl',
-                                   '../data/rocstory.vanilla.train.pkl'],
+                     dictionaries=['../data/rocstory.pad-lookback-1.train.pkl',
+                                   '../data/rocstory.pad-lookback-1.train.pkl'],
                      use_dropout=params['use-dropout'][0],
                      overwrite=False)
     return validerr
 
 if __name__ == '__main__':
     main(0, {
-        'model': ['../model/allpair/twogate/model_twogate.npz'],
+        'model': ['../model/twogate/model_twogate.npz'],
         'dim_word': [620],
         'dim': [1024],
         'n-words': [28000],  # 27644
