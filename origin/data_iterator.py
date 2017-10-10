@@ -122,4 +122,5 @@ class TextIterator:
             self.reset()
             raise StopIteration
 
+        #print 'in data_iterator, data size:', len(source), len(target), 'self.k =', self.k
         return source, target

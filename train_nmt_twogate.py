@@ -14,8 +14,8 @@ def main(job_id, params):
                      decay_c=params['decay-c'][0],
                      clip_c=params['clip-c'][0],
                      lrate=params['learning-rate'][0],
-                     optimizer=params['optimizer'][0],
-                     patience=5,
+                     optimizer=params['optimizer'][-1],
+                     patience=10,
                      maxlen=70,
                      batch_size=50,
                      valid_batch_size=50,
@@ -26,27 +26,27 @@ def main(job_id, params):
                      #datasets=['../data/allpair.train.query',
                      #          '../data/allpair.train.reply',
                      #          '../data/allpair.train.topic'],
-                     datasets=['../data/rocstory.pad-lookback-1.train.query',
-                               '../data/rocstory.pad-lookback-1.train.reply',
-                               '../data/rocstory.pad-lookback-1.train.topic'],
-                     valid_datasets=['../data/allpair.dev.query',
-                                     '../data/allpair.dev.reply',
-                                     '../data/allpair.dev.topic'],
-                     dictionaries=['../data/rocstory.pad-lookback-1.train.pkl',
-                                   '../data/rocstory.pad-lookback-1.train.pkl'],
+                     datasets=['../data/rocstory.pad-allpair.train.query',
+                               '../data/rocstory.pad-allpair.train.reply',
+                               '../data/rocstory.pad-allpair.train.topic'],
+                     valid_datasets=['../data/rocstory.pad-allpair.val.query',
+                                     '../data/rocstory.pad-allpair.val.reply',
+                                     '../data/rocstory.pad-allpair.val.topic'],
+                     dictionaries=['../data/rocstory.pad-allpair.train.pkl',
+                                   '../data/rocstory.pad-allpair.train.pkl'],
                      use_dropout=params['use-dropout'][0],
                      overwrite=False)
     return validerr
 
 if __name__ == '__main__':
     main(0, {
-        'model': ['../model/twogate/model_twogate.npz'],
+        'model': ['../model/twogate/model_twogate_allpair_p10.npz'],
         'dim_word': [620],
         'dim': [1024],
-        'n-words': [28000],  # 27644
-        'optimizer': ['adadelta'],
+        'n-words': [36480], #28000],  # 27644
+        'optimizer': ['adadelta', 'adam'],
         'decay-c': [0.],
         'clip-c': [1.],
-        'use-dropout': [False],
+        'use-dropout': [True],
         'learning-rate': [0.0001],
         'reload': [False]})

@@ -13,30 +13,31 @@ import sys, os
 import codecs as cs
 
 # invalid for vanilla, all_invalid for allpair, lookback2_invalid for lookback2
-invalid = [8820, 19084, 44800]
-all_invalid = []
-for i in range(0, 10):
-    for j in invalid:
-        all_invalid.append(j * 10 + i)
-lookback2_invalid = []
-for i in range(0, 5):
-    for j in invalid:
-        lookback2_invalid.append(j * 5 + i)
+#invalid = [8820, 19084, 44800]
+#all_invalid = []
+#for i in range(0, 10):
+#    for j in invalid:
+#        all_invalid.append(j * 10 + i)
+#lookback2_invalid = []
+#for i in range(0, 5):
+#    for j in invalid:
+#        lookback2_invalid.append(j * 5 + i)
         
 def main(source_file, q_file, r_file, kw_file):
     with cs.open(source_file, encoding='utf-8')as fin:
         for i, line in enumerate(fin):
-            if i in all_invalid: continue
-            if i % 1000 == 0: print i
-            if line.startswith("<bos>") or not line: continue
+            #if i in all_invalid: continue
+            if i % 1000 == 0 and i > 0: print i
+            if not line: continue  #line.startswith("<bos>") or 
             list = sent_tokenize(line)
             if len(list) == 1: 
                 list = list[0].strip().split('\t')
-            q = tokenize(" ".join(list[:-1]))
-            q = " ".join(q)
+            #q = tokenize(" ".join(list[:-1]))
+            q = map(lambda x: ' '.join(x), map(tokenize, list[:-1]))
+            q = ' '.join(q)
             r = tokenize(list[-1])
             kw = get_noun(r)
-            r = " ".join(r)
+            r = ' '.join(r)
             q_file.write(q + "\n")
             r_file.write(r + "\n")
             kw_file.write(kw + "\n")

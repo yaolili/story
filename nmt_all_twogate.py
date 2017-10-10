@@ -1155,13 +1155,13 @@ def rmsprop(lr, tparams, grads, inp, cost):
     return f_grad_shared, f_update
 
 
-def sgd(lr, tparams, grads, x, mask, y, cost):
+def sgd(lr, tparams, grads, inp, cost):
     gshared = [theano.shared(p.get_value() * 0.,
                              name='%s_grad' % k)
                for k, p in tparams.iteritems()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
-    f_grad_shared = theano.function([x, mask, y], cost, updates=gsup,
+    f_grad_shared = theano.function(inp, cost, updates=gsup,
                                     profile=profile)
 
     pup = [(p, p - lr * g) for p, g in zip(itemlist(tparams), gshared)]
@@ -1235,6 +1235,7 @@ def train(dim_word=100,  # word vector dimensionality
         worddicts_r[ii] = dict()
         for kk, vv in worddicts[ii].iteritems():
             worddicts_r[ii][vv] = kk
+        print 'loaded dictionary from file. dictionary size:', len(worddicts[ii])
 
     # reload options
     if reload_ and os.path.exists(saveto):
@@ -1279,8 +1280,9 @@ def train(dim_word=100,  # word vector dimensionality
     f_log_probs = theano.function(inps, cost, profile=profile)
     print('Done')
 
+    orig_cost = cost / y_mask.sum(0)
     cost = cost.mean()
-
+    orig_cost = orig_cost.mean()
     # apply L2 regularization on weights
     if decay_c > 0.:
         decay_c = theano.shared(numpy.float32(decay_c), name='decay_c')
@@ -1299,8 +1301,8 @@ def train(dim_word=100,  # word vector dimensionality
         cost += alpha_reg
 
     # after all regularizers - compile the computational graph for cost
-    print('Building f_cost...')
-    f_cost = theano.function(inps, cost, profile=profile)
+    print('Building f_pplxity...')
+    f_pplxity = theano.function(inps, orig_cost, profile=profile)
     print('Done')
 
     print('Computing gradient...')
@@ -1357,6 +1359,7 @@ def train(dim_word=100,  # word vector dimensionality
                                                 n_words_src=n_words_src,
                                                 n_words=n_words)
 
+            #print 'currently', n_samples, 'samples! sent length:', len(x), len(y)
             if x is None:
                 print('Minibatch with zero sample under length ', maxlen)
                 uidx -= 1
@@ -1366,7 +1369,7 @@ def train(dim_word=100,  # word vector dimensionality
 
             # compute cost, grads and copy grads to shared variables
             cost = f_grad_shared(x, x_mask, y, y_mask, z)
-
+            orig_cost = f_pplxity(x, x_mask, y, y_mask, z)
             # do the update on parameters
             f_update(lrate)
 
@@ -1380,7 +1383,7 @@ def train(dim_word=100,  # word vector dimensionality
 
             # verbose
             if numpy.mod(uidx, dispFreq) == 0:
-                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'UD ', ud
+                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'Original cost:', orig_cost, 'UD ', ud
 
             # save the best model so far, in addition, save the latest model
             # into a separate file with the iteration number for external eval
@@ -1451,7 +1454,7 @@ def train(dim_word=100,  # word vector dimensionality
             # validate model on validation set and early stop if necessary
             if numpy.mod(uidx, validFreq) == 0:
                 use_noise.set_value(0.)
-                valid_errs = pred_probs(f_log_probs, prepare_data,
+                valid_errs = pred_probs(f_pplxity, prepare_data,
                                         model_options, valid, worddicts)
                 valid_err = valid_errs.mean()
                 history_errs.append(valid_err)
@@ -1487,7 +1490,7 @@ def train(dim_word=100,  # word vector dimensionality
         zipp(best_p, tparams)
 
     use_noise.set_value(0.)
-    valid_err = pred_probs(f_log_probs, prepare_data,
+    valid_err = pred_probs(f_pplxity, prepare_data,
                            model_options, valid, worddicts).mean()
 
     print 'Valid ', valid_err
