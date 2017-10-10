@@ -1282,7 +1282,6 @@ def train(dim_word=100,  # word vector dimensionality
 
     orig_cost = cost / y_mask.sum(0)
     cost = cost.mean()
-    orig_cost = orig_cost.mean()
     # apply L2 regularization on weights
     if decay_c > 0.:
         decay_c = theano.shared(numpy.float32(decay_c), name='decay_c')
@@ -1369,7 +1368,7 @@ def train(dim_word=100,  # word vector dimensionality
 
             # compute cost, grads and copy grads to shared variables
             cost = f_grad_shared(x, x_mask, y, y_mask, z)
-            orig_cost = f_pplxity(x, x_mask, y, y_mask, z)
+            orig_cost = f_pplxity(x, x_mask, y, y_mask, z).mean()
             # do the update on parameters
             f_update(lrate)
 
