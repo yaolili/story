@@ -23,13 +23,14 @@ def get_noun(tokenized):
         raise ValueError, "Empty tokenized words for get_noun()"
     if not isinstance(tokenized, list):
         raise TypeError, "List params for get_noun()"
-    is_noun = lambda pos: pos[:2] == 'NN'
+    is_noun = lambda pos: (pos[:2] == 'NN' or pos[:2] == 'VB')
     nouns = [word for (word, pos) in nltk.pos_tag(tokenized) if is_noun(pos)] 
     if len(nouns) > 0:
         return random.choice(nouns)
     return random.choice(tokenized)
     
 if __name__ == "__main__":
-    str = "I am a Chinses!"
+    str = "I am a Chinses! I like to study Chinese!"
     tokenized = tokenize(str)
+    #print(nltk.pos_tag(tokenized))
     print(get_noun(tokenized))
