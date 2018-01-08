@@ -1301,7 +1301,8 @@ def train(dim_word=100,  # word vector dimensionality
 
     # after all regularizers - compile the computational graph for cost
     print('Building f_pplxity...')
-    f_pplxity = theano.function(inps, orig_cost, profile=profile)
+    pplxity = tensor.exp(orig_cost)
+    f_pplxity = theano.function(inps, pplxity, profile=profile)
     print('Done')
 
     print('Computing gradient...')
@@ -1368,7 +1369,7 @@ def train(dim_word=100,  # word vector dimensionality
 
             # compute cost, grads and copy grads to shared variables
             cost = f_grad_shared(x, x_mask, y, y_mask, z)
-            orig_cost = f_pplxity(x, x_mask, y, y_mask, z).mean()
+            perplexity = f_pplxity(x, x_mask, y, y_mask, z).mean()
             # do the update on parameters
             f_update(lrate)
 
@@ -1382,7 +1383,7 @@ def train(dim_word=100,  # word vector dimensionality
 
             # verbose
             if numpy.mod(uidx, dispFreq) == 0:
-                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'Original cost:', orig_cost, 'UD ', ud
+                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'perplexity:', perplexity, 'UD ', ud
 
             # save the best model so far, in addition, save the latest model
             # into a separate file with the iteration number for external eval
